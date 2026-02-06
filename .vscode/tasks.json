@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Crawler (dev)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "problemMatcher": ["$tsc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Build TypeScript",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "problemMatcher": ["$tsc"],
+      "group": "build"
+    },
+    {
+      "label": "Run Compiled",
+      "type": "shell",
+      "command": "npm",
+      "args": ["start"],
+      "group": "build"
+    },
+    {
+      "label": "Prisma Studio",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "prisma:studio"],
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Generate Prisma Client",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "prisma:generate"],
+      "group": "build"
+    },
+    {
+      "label": "Database Migration",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "prisma:migrate"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}

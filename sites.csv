@@ -1,0 +1,5 @@
+url,job_card_selector,title_selector,date_selector,link_selector,location_selector
+"https://ar.computrabajo.com/empleos-de-informatica-y-telecom-en-buenos-aires-gba","article","h2 a","p.fc_aux","h2 a",""
+"https://www.getonbrd.cl/jobs/programacion","a.gb-results-list__item",".gb-results-list__title strong",".opacity-half.size0",".","span.location"
+"https://chumi-it.com/professional/jobs/search?search=&country=2&category=&modality=","div.row:has(h6)","h6","h6.text-secondary","a.btn-view-offer",""
+"https://www.linkedin.com/jobs/search?keywords=Desarrollador&location=Argentina&geoId=100446943","div.base-search-card","h3","time","a.base-card__full-link",""
