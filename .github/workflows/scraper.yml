@@ -1,0 +1,73 @@
+name: Job Web Scraper
+
+on:
+  schedule:
+    # Ejecutar diariamente a las 08:00 UTC
+    - cron: '0 8 * * *'
+  # Permitir ejecución manual
+  workflow_dispatch:
+
+jobs:
+  scrape-jobs:
+    runs-on: ubuntu-latest
+    
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    
+    steps:
+      # 1. Checkout del código
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # 2. Setup Node.js 18
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      # 3. Cache de npm
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+      
+      # 4. Cache de Playwright
+      - name: Cache Playwright binaries
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      
+      # 5. Instalar dependencias
+      - name: Install dependencies
+        run: npm ci
+      
+      # 6. Instalar navegadores de Playwright (chromium)
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+      
+      # 7. Generar cliente de Prisma
+      - name: Generate Prisma Client
+        run: npx prisma generate
+      
+      # 8. Compilar TypeScript
+      - name: Build TypeScript
+        run: npm run build
+      
+      # 9. Limpiar jobs antiguos (> 30 días)
+      - name: Cleanup old jobs
+        run: npx ts-node scripts/cleanup-old-jobs.ts
+      
+      # 10. Ejecutar el crawler
+      - name: Run crawler
+        run: npm start
+      
+      # 11. Notificación en caso de error (opcional)
+      - name: Notify on failure
+        if: failure()
+        run: echo "Crawler execution failed. Check logs above for details."

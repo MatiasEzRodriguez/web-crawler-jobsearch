@@ -6,7 +6,8 @@ A powerful, production-ready Node.js web crawler for scraping job listings using
 
 ✨ **Technology Stack**
 - **Crawling**: Playwright for robust handling of dynamic JavaScript websites
-- **Database**: SQLite with Prisma ORM for type-safe database operations
+- **Database**: PostgreSQL (Neon.tech) with Prisma ORM for type-safe database operations and seamless scalability
+- **Automation**: GitHub Actions for daily scheduled crawling
 - **Input**: CSV-based configuration for flexible site setup
 - **Utilities**: date-fns for advanced date parsing and comparison
 
@@ -53,7 +54,8 @@ job-web-crawler/
 
 ### Prerequisites
 - Node.js 18+ and npm/yarn
-- SQLite (usually included with Node.js)
+- PostgreSQL database (local or cloud-hosted)
+- For GitHub Actions automation: Neon.tech account (free tier available)
 
 ### Setup Steps
 
@@ -67,15 +69,33 @@ cd job-web-crawler-bot-jobsearch
 npm install
 ```
 
-3. **Setup Prisma and database**
+3. **Configure Database Connection**
+
+Create a `.env` file with your PostgreSQL connection string:
+
+```bash
+# For local PostgreSQL
+DATABASE_URL="postgresql://user:password@localhost:5432/jobs"
+
+# For Neon.tech (recommended for GitHub Actions)
+DATABASE_URL="postgresql://user:password@ep-xxxxx.region.neon.tech/jobs?sslmode=require&pgbouncer=true"
+```
+
+**Getting Neon Connection String:**
+1. Go to https://console.neon.tech
+2. Create a project and database
+3. Go to "Connection" → "Pooler" → "Transaction"
+4. Copy the connection string
+
+4. **Setup Prisma and database**
 ```bash
 npm run prisma:generate
 npm run prisma:migrate
 ```
 
 This will:
-- Generate the Prisma client
-- Create the SQLite database
+- Generate the Prisma client for PostgreSQL
+- Create the database schema
 - Set up the jobs table
 
 ## Configuration
@@ -105,38 +125,64 @@ https://careers.company.com,.vacancy,.position-title,.date,a.apply-link
 Update `.env` as needed:
 
 ```env
-DATABASE_URL="file:./prisma/dev.db"
+DATABASE_URL="postgresql://user:password@ep-xxxxx.region.neon.tech/jobs?sslmode=require&pgbouncer=true"
 DEBUG=false  # Set to true for detailed debug logs
 ```
 
 ## Usage
 
-### Run the Crawler
+### Run the Crawler Locally
 
 ```bash
 # Using ts-node (recommended for development)
 npm run dev
 
-# Or compile and run compiled JavaScript
+# Or compile and run compiled JavaScript (production)
 npm run build
 npm start
 ```
 
+### Automated Execution with GitHub Actions
+
+The project includes a GitHub Actions workflow that automatically runs the crawler daily at **08:00 UTC** and persists results to your PostgreSQL database.
+
+**Setup Instructions:**
+
+1. **Push code to GitHub**
+```bash
+git push origin develop
+```
+
+2. **Configure GitHub Secret**
+   - Go to your repository: **Settings** → **Secrets and variables** → **Actions**
+   - Create new secret: `DATABASE_URL`
+   - Value: Your PostgreSQL connection string (Neon recommended)
+
+3. **Manual Trigger** (optional)
+   - Go to **Actions** → **Job Web Scraper**
+   - Click **Run workflow** to execute anytime
+
+4. **Monitor Executions**
+   - Check **Actions** tab to view all runs
+   - Each run shows logs, status, and execution time
+
+**Schedule:** Daily at 08:00 UTC (configurable in [`.github/workflows/scraper.yml`](.github/workflows/scraper.yml))
+
 ### Output Example
 
 ```
-[INFO] 2024-01-28T10:30:45.123Z - === Job Web Crawler Started ===
-[INFO] 2024-01-28T10:30:45.123Z - Configuration:
-[INFO] 2024-01-28T10:30:45.123Z -   - Days to check: 7
-[INFO] 2024-01-28T10:30:45.123Z -   - CSV file: /path/to/sites.csv
-[✓] 2024-01-28T10:30:46.234Z - Browser initialized
-[✓] 2024-01-28T10:30:46.567Z - Loaded 2 site configurations
-
-[INFO] 2024-01-28T10:30:47.123Z - Processing: https://jobs.example.com
-[INFO] 2024-01-28T10:30:52.456Z - Found 45 job cards on https://jobs.example.com
-[✓] 2024-01-28T10:30:52.789Z - Successfully scraped 45 jobs
-[✓] 2024-01-28T10:30:53.123Z - ✓ Saved: Senior JavaScript Developer (ID: 1)
-[✓] 2024-01-28T10:30:53.456Z - ✓ Saved: Junior Node.js Engineer (ID: 2)
+[INFO] 2026-02-18T17:05:21.404Z - === Job Web Crawler Started ===
+[INFO] 2026-02-18T17:05:21.404Z - Configuration:
+[INFO] 2026-02-18T17:05:21.404Z -   - Days to check: 7
+[INFO] 2026-02-18T17:05:21.404Z - Processing: https://ar.computrabajo.com
+[✓] 2026-02-18T17:05:27.975Z - Successfully scraped 20 jobs
+[✓] 2026-02-18T17:05:22.925Z - ✓ Saved: Soporte Técnico (ID: 1)
+[✓] 2026-02-18T17:05:23.244Z - ✓ Saved: Infraestructura IT (ID: 2)
+...
+[INFO] 2026-02-18T17:06:48.757Z - Total jobs found: 387
+[✓] 2026-02-18T17:06:48.757Z - Total jobs saved: 51
+[✓] 2026-02-18T17:06:48.757Z - === Job Web Crawler Completed ===
+```
 
 [INFO] 2024-01-28T10:31:02.123Z - === Crawler Summary ===
 [INFO] 2024-01-28T10:31:02.123Z - Total jobs found: 90
@@ -149,12 +195,20 @@ npm start
 ### Database Operations
 
 ```bash
-# View database in Prisma Studio
+# View database in Prisma Studio (interactive UI)
 npm run prisma:studio
 
 # Create a migration after changing schema.prisma
 npm run prisma:migrate
+
+# Generate Prisma Client (needed after schema changes)
+npm run prisma:generate
 ```
+
+**For Neon.tech (Production):**
+1. Go to your Neon dashboard for SQL queries
+2. Use the Connection Pooler in "Transaction" mode
+3. Monitor performance in Neon metrics
 
 ## How It Works
 
@@ -163,7 +217,7 @@ npm run prisma:migrate
 - Validates all required fields are present
 
 ### 2. **Web Scraping**
-- Initializes Playwright browser (Chromium)
+- Initializes Playwright browser (Chromium) in headless mode
 - Navigates to each site URL
 - Waits for job cards to load (networkidle)
 - Extracts data using CSS selectors
@@ -176,7 +230,8 @@ npm run prisma:migrate
 
 ### 4. **Database Storage**
 - Checks if job URL already exists
-- Saves new jobs to SQLite
+- Saves new jobs to PostgreSQL (Neon)
+- Automatic cleanup: Deletes jobs older than 30 days
 - Captures timestamp for tracking
 
 ### 5. **Error Handling**
@@ -265,8 +320,43 @@ export async function getJobsByCompany(company: string) {
 
 - **Network calls**: Respects servers with 1s delay between sites
 - **Browser resources**: Single browser instance for all sites
-- **Database**: Batch operations would improve with large datasets
+- **Database**: Works efficiently with PostgreSQL connection pooling
+- **GitHub Actions**: ~2 minutes per run with caching enabled
 - **Memory**: Streams CSV to avoid loading entire file
+- **Connection Pooling**: Transaction mode for serverless compatibility
+
+## Deployment
+
+### Local Development
+```bash
+npm run dev  # Uses ts-node for quick iteration
+```
+
+### Production / GitHub Actions
+```bash
+npm run build     # Compile TypeScript
+npm start         # Run compiled JavaScript (faster than ts-node)
+```
+
+### Database Setup (one-time)
+```bash
+# For Neon.tech:
+# 1. Create account at https://console.neon.tech
+# 2. Copy Pooler Connection String (Transaction mode)
+# 3. Set DATABASE_URL environment variable
+# 4. Run: npm run prisma:migrate
+```
+
+### GitHub Actions Configuration
+See [SETUP_NEON.md](SETUP_NEON.md) for complete GitHub Actions setup guide.
+
+**Key Features:**
+- ✅ Scheduled daily execution (08:00 UTC)
+- ✅ Manual workflow trigger available
+- ✅ Automatic job cleanup (> 30 days)
+- ✅ npm cache for faster builds
+- ✅ Playwright binary caching
+- ✅ Connection pooling for serverless environment
 
 ## Security Notes
 
@@ -325,13 +415,9 @@ Output will be in `dist/` directory.
 npm run dev
 ```
 
-## License
-
-MIT
-
 ## Author
 
-Senior Backend Developer
+Matias Ezequiel Rodriguez
 
 ---
 
